@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>景区选址审核系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 30px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .content { padding: 30px; }
+        .section { margin-bottom: 30px; border: 1px solid #e8e8e8; border-radius: 8px; overflow: hidden; }
+        .section-header { background: #f8f9fa; padding: 15px 20px; font-size: 16px; font-weight: 600; color: #333; border-bottom: 1px solid #e8e8e8; }
+        .section-body { padding: 20px; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 15px; }
+        .form-group { flex: 1; min-width: 200px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: #555; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; transition: all 0.3s; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .veto-section { background: #fff2f0; border: 1px solid #ffccc7; }
+        .veto-section .section-header { background: #fff1f0; color: #cf1322; border-bottom-color: #ffccc7; }
+        .veto-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid #ffccc7; }
+        .veto-item:last-child { border-bottom: none; }
+        .veto-label { font-weight: 500; color: #333; }
+        .veto-desc { font-size: 12px; color: #666; margin-top: 4px; }
+        .veto-value { font-weight: 600; padding: 6px 16px; border-radius: 4px; font-size: 14px; }
+        .veto-pass { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .veto-fail { background: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; }
+        .veto-auto { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; font-size: 12px; }
+        .score-table { width: 100%; border-collapse: collapse; }
+        .score-table th, .score-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e8e8e8; }
+        .score-table th { background: #fafafa; font-weight: 600; color: #333; font-size: 13px; }
+        .score-table td { font-size: 14px; }
+        .score-table tr:hover { background: #f5f5f5; }
+        .max-score { color: #999; font-size: 12px; }
+        .score-input { width: 80px; padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; font-size: 14px; }
+        .data-input { width: 120px; padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px; text-align: center; font-size: 14px; }
+        .data-input:focus, .score-input:focus { outline: none; border-color: #667eea; }
+        .result-section { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 30px; text-align: center; border-radius: 8px; margin-top: 30px; }
+        .result-score { font-size: 72px; font-weight: 700; margin: 10px 0; }
+        .result-label { font-size: 16px; opacity: 0.9; }
+        .result-status { display: inline-block; padding: 10px 30px; border-radius: 30px; font-size: 18px; font-weight: 600; margin-top: 15px; }
+        .status-pass { background: #52c41a; }
+        .status-fail { background: #faad14; }
+        .status-veto { background: #f5222d; }
+        .veto-warning { background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: none; }
+        .btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.3s; margin-right: 10px; }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-default { background: #fff; color: #555; border: 1px solid #d9d9d9; }
+        .btn-default:hover { border-color: #667eea; color: #667eea; }
+        .weight-badge { background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #666; }
+        .photo-section { margin-top: 20px; }
+        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .photo-upload { border: 2px dashed #d9d9d9; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .photo-upload:hover { border-color: #667eea; background: #f0f5ff; }
+        .photo-upload input { display: none; }
+        .photo-upload-label { color: #666; font-size: 14px; }
+        .photo-preview { width: 100%; height: 150px; object-fit: cover; border-radius: 6px; margin-top: 10px; display: none; }
+        .photo-title { font-weight: 500; margin-bottom: 8px; color: #333; }
+        .photo-count { color: #999; font-size: 12px; }
+        @media (max-width: 768px) {
+            .form-row { flex-direction: column; }
+            .score-table { font-size: 12px; }
+            .score-table th, .score-table td { padding: 8px; }
+            .result-score { font-size: 48px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏞️ 景区选址审核系统</h1>
+            <p>基于景区选址标准20250420版 | 一票否决制 | 总分≥80分通过初审</p>
+        </div>
+        
+        <div class="content">
+            <!-- 基础信息采集 -->
+            <div class="section">
+                <div class="section-header">📋 基础信息采集</div>
+                <div class="section-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>景区名称</label>
+                            <input type="text" id="scenicName" placeholder="请输入景区名称">
+                        </div>
+                        <div class="form-group">
+                            <label>景区级别</label>
+                            <select id="scenicLevel">
+                                <option value="">请选择</option>
+                                <option value="5A">5A级</option>
+                                <option value="4A">4A级</option>
+                                <option value="3A">3A级</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>选址区域</label>
+                            <select id="locationArea">
+                                <option value="">请选择</option>
+                                <option value="核心区域">核心区域</option>
+                                <option value="次核心区域">次核心区域</option>
+                                <option value="一般区域">一般区域</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>门票价格（元）</label>
+                            <input type="number" id="ticketPrice" placeholder="请输入门票价格">
+                        </div>
+                        <div class="form-group">
+                            <label>场地面积（㎡）</label>
+                            <input type="number" id="area" placeholder="请输入场地面积">
+                        </div>
+                        <div class="form-group">
+                            <label>柱距（米）</label>
+                            <input type="number" id="columnSpacing" placeholder="请输入柱距，标准≥6米" step="0.1" onchange="updateVetoColumnSpacing()">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>层高（米）</label>
+                            <input type="number" id="floorHeight" placeholder="请输入层高，需≥2.7米" step="0.1" onchange="updateVetoHeight()">
+                        </div>
+                        <div class="form-group">
+                            <label>楼层</label>
+                            <select id="floor" onchange="updateScoreFloor()">
+                                <option value="">请选择</option>
+                                <option value="1">一层</option>
+                                <option value="2">二层</option>
+                                <option value="3">三层及以上</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>年客流量（万人次）</label>
+                            <input type="number" id="visitorFlow" placeholder="请输入年客流量" onchange="updateScoreVisitorFlow()">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>平均停留时长（小时）</label>
+                            <input type="number" id="stayTime" placeholder="请输入平均停留时长" step="0.5" onchange="updateScoreStayTime()">
+                        </div>
+                        <div class="form-group">
+                            <label>网络延迟（ms）</label>
+                            <input type="number" id="networkDelay" placeholder="请输入网络延迟，需≤40ms" onchange="updateVetoNetwork()">
+                        </div>
+                        <div class="form-group">
+                            <label>电力配置</label>
+                            <select id="powerConfig" onchange="updateVetoPower()">
+                                <option value="">请选择</option>
+                                <option value="满足">满足VR设备负荷</option>
+                                <option value="不满足">不满足VR设备负荷</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 现场照片上传 -->
+            <div class="section">
+                <div class="section-header">📸 现场照片上传</div>
+                <div class="section-body">
+                    <div class="photo-section">
+                        <div class="photo-title">室内照片 <span class="photo-count">（需上传3张）</span></div>
+                        <div class="photo-grid" id="indoorPhotos">
+                            <div class="photo-upload" onclick="document.getElementById('indoor1').click()">
+                                <input type="file" id="indoor1" accept="image/*" onchange="previewImage(this, 'preview_indoor1')">
+                                <div class="photo-upload-label">+ 室内照片1</div>
+                                <img id="preview_indoor1" class="photo-preview">
+                            </div>
+                            <div class="photo-upload" onclick="document.getElementById('indoor2').click()">
+                                <input type="file" id="indoor2" accept="image/*" onchange="previewImage(this, 'preview_indoor2')">
+                                <div class="photo-upload-label">+ 室内照片2</div>
+                                <img id="preview_indoor2" class="photo-preview">
+                            </div>
+                            <div class="photo-upload" onclick="document.getElementById('indoor3').click()">
+                                <input type="file" id="indoor3" accept="image/*" onchange="previewImage(this, 'preview_indoor3')">
+                                <div class="photo-upload-label">+ 室内照片3</div>
+                                <img id="preview_indoor3" class="photo-preview">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="photo-section">
+                        <div class="photo-title">室外照片 <span class="photo-count">（需上传2张）</span></div>
+                        <div class="photo-grid" id="outdoorPhotos">
+                            <div class="photo-upload" onclick="document.getElementById('outdoor1').click()">
+                                <input type="file" id="outdoor1" accept="image/*" onchange="previewImage(this, 'preview_outdoor1')">
+                                <div class="photo-upload-label">+ 室外照片1</div>
+                                <img id="preview_outdoor1" class="photo-preview">
+                            </div>
+                            <div class="photo-upload" onclick="document.getElementById('outdoor2').click()">
+                                <input type="file" id="outdoor2" accept="image/*" onchange="previewImage(this, 'preview_outdoor2')">
+                                <div class="photo-upload-label">+ 室外照片2</div>
+                                <img id="preview_outdoor2" class="photo-preview">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="photo-section">
+                        <div class="photo-title">其他图纸 <span class="photo-count">（各需上传1张）</span></div>
+                        <div class="photo-grid" id="otherPhotos">
+                            <div class="photo-upload" onclick="document.getElementById('guideMap').click()">
+                                <input type="file" id="guideMap" accept="image/*" onchange="previewImage(this, 'preview_guideMap')">
+                                <div class="photo-upload-label">+ 景区导览图</div>
+                                <img id="preview_guideMap" class="photo-preview">
+                            </div>
+                            <div class="photo-upload" onclick="document.getElementById('sitePlan').click()">
+                                <input type="file" id="sitePlan" accept="image/*" onchange="previewImage(this, 'preview_sitePlan')">
+                                <div class="photo-upload-label">+ 点位平面图</div>
+                                <img id="preview_sitePlan" class="photo-preview">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 一票否决项 -->
+            <div class="section veto-section">
+                <div class="section-header">🚫 一票否决项（必须全部满足）</div>
+                <div class="section-body">
+                    <div class="veto-item">
+                        <div>
+                            <div class="veto-label">1. 柱距达标情况</div>
+                            <div class="veto-desc">标准柱距≥6米（依据基础信息采集数据自动判断）</div>
+                        </div>
+                        <div>
+                            <span id="veto_column_spacing_display" class="veto-value veto-auto">请在基础信息中填写柱距</span>
+                            <input type="hidden" id="veto_column_spacing" value="">
+                        </div>
+                    </div>
+                    <div class="veto-item">
+                        <div>
+                            <div class="veto-label">2. 层高合规性</div>
+                            <div class="veto-desc">层高≥2.7米（依据基础信息采集数据自动判断）</div>
+                        </div>
+                        <div>
+                            <span id="veto_height_display" class="veto-value veto-auto">请在基础信息中填写层高</span>
+                            <input type="hidden" id="veto_height" value="">
+                        </div>
+                    </div>
+                    <div class="veto-item">
+                        <div>
+                            <div class="veto-label">3. 电力负荷</div>
+                            <div class="veto-desc">电力配置满足VR设备运行需求（依据基础信息采集选择自动判断）</div>
+                        </div>
+                        <div>
+                            <span id="veto_power_display" class="veto-value veto-auto">请在基础信息中选择电力配置</span>
+                            <input type="hidden" id="veto_power" value="">
+                        </div>
+                    </div>
+                    <div class="veto-item">
+                        <div>
+                            <div class="veto-label">4. 网络稳定性</div>
+                            <div class="veto-desc">网络延迟≤40ms（依据基础信息采集数据自动判断）</div>
+                        </div>
+                        <div>
+                            <span id="veto_network_display" class="veto-value veto-auto">请在基础信息中填写网络延迟</span>
+                            <input type="hidden" id="veto_network" value="">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 选址评分细则 -->
+            <div class="section">
+                <div class="section-header">📊 选址评分细则（各项得分直接相加，满分100分）</div>
+                <div class="section-body">
+                    <div class="veto-warning" id="vetoWarning">
+                        <strong>⚠️ 警告：</strong>存在一票否决项不满足，审核结果为<strong>不通过</strong>
+                    </div>
+                    <table class="score-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">序号</th>
+                                <th>评分指标</th>
+                                <th style="width: 80px;">满分</th>
+                                <th>评分标准</th>
+                                <th style="width: 120px;">实际数据</th>
+                                <th style="width: 80px;">得分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td><strong>目标客群匹配度</strong></td>
+                                <td><span class="weight-badge">10分</span></td>
+                                <td>年轻客群占比达70%得10分，每减10%扣2分<br><small>亲子类客群不低于30%</small></td>
+                                <td><input type="number" id="data1" class="data-input" placeholder="%" min="0" max="100" onchange="calculateScore1()"></td>
+                                <td><input type="number" id="score1" class="score-input" value="0" min="0" max="10" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td><strong>客流量规模</strong></td>
+                                <td><span class="weight-badge">15分</span></td>
+                                <td>≥300万人次得15分，每减20万人次减1分<br><small>不低于100万</small></td>
+                                <td><input type="number" id="data2" class="data-input" placeholder="万人次" min="0" onchange="calculateScore2()"></td>
+                                <td><input type="number" id="score2" class="score-input" value="0" min="0" max="15" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td><strong>停留时长</strong></td>
+                                <td><span class="weight-badge">10分</span></td>
+                                <td>≥3小时得10分，每减1小时减3分<br><small>不低于1.5小时</small></td>
+                                <td><input type="number" id="data3" class="data-input" placeholder="小时" step="0.5" min="0" onchange="calculateScore3()"></td>
+                                <td><input type="number" id="score3" class="score-input" value="0" min="0" max="10" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td><strong>消费能力</strong></td>
+                                <td><span class="weight-badge">10分</span></td>
+                                <td>人均二销能力≥60元得10分，每减10元减2分<br><small>游玩类二销消费不低于40元</small></td>
+                                <td><input type="number" id="data4" class="data-input" placeholder="元" min="0" onchange="calculateScore4()"></td>
+                                <td><input type="number" id="score4" class="score-input" value="0" min="0" max="10" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td><strong>周边配套</strong></td>
+                                <td><span class="weight-badge">5分</span></td>
+                                <td>半径200米内有餐饮/零售/游乐设施</td>
+                                <td>
+                                    <select id="data5" class="data-input" onchange="calculateScore5()">
+                                        <option value="">请选择</option>
+                                        <option value="yes">有</option>
+                                        <option value="no">无</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score5" class="score-input" value="0" min="0" max="5" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td><strong>竞争环境</strong></td>
+                                <td><span class="weight-badge">5分</span></td>
+                                <td>半径1公里内无VR产品</td>
+                                <td>
+                                    <select id="data6" class="data-input" onchange="calculateScore6()">
+                                        <option value="">请选择</option>
+                                        <option value="yes">无竞品</option>
+                                        <option value="no">有竞品</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score6" class="score-input" value="0" min="0" max="5" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>7</td>
+                                <td><strong>内容契合度</strong></td>
+                                <td><span class="weight-badge">5分</span></td>
+                                <td>内容与景区主题强关联得5分，弱关联得2分</td>
+                                <td>
+                                    <select id="data7" class="data-input" onchange="calculateScore7()">
+                                        <option value="">请选择</option>
+                                        <option value="strong">强关联</option>
+                                        <option value="weak">弱关联</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score7" class="score-input" value="0" min="0" max="5" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>8</td>
+                                <td><strong>环境噪音</strong></td>
+                                <td><span class="weight-badge">2分</span></td>
+                                <td>环境噪音≤55分贝得2分，每超5分贝减1分</td>
+                                <td><input type="number" id="data8" class="data-input" placeholder="分贝" min="0" onchange="calculateScore8()"></td>
+                                <td><input type="number" id="score8" class="score-input" value="0" min="0" max="2" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>9</td>
+                                <td><strong>合规性</strong></td>
+                                <td><span class="weight-badge">3分</span></td>
+                                <td>取得所有许可证得3分，缺一项扣3分</td>
+                                <td>
+                                    <select id="data9" class="data-input" onchange="calculateScore9()">
+                                        <option value="">请选择</option>
+                                        <option value="complete">齐全</option>
+                                        <option value="incomplete">不齐全</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score9" class="score-input" value="0" min="0" max="3" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>10</td>
+                                <td><strong>楼层位置</strong></td>
+                                <td><span class="weight-badge">10分</span></td>
+                                <td>一层得10分，二层得5分，二层以上不得分</td>
+                                <td>
+                                    <select id="data10" class="data-input" onchange="calculateScore10()">
+                                        <option value="">请选择</option>
+                                        <option value="1">一层</option>
+                                        <option value="2">二层</option>
+                                        <option value="3">三层及以上</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score10" class="score-input" value="0" min="0" max="10" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>11</td>
+                                <td><strong>动线位置</strong></td>
+                                <td><span class="weight-badge">10分</span></td>
+                                <td>在客户参观行进主动线上得10分，在游客聚集广场得10分</td>
+                                <td>
+                                    <select id="data11" class="data-input" onchange="calculateScore11()">
+                                        <option value="">请选择</option>
+                                        <option value="main">主动线</option>
+                                        <option value="square">聚集广场</option>
+                                        <option value="other">其他</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score11" class="score-input" value="0" min="0" max="10" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>12</td>
+                                <td><strong>二销基础</strong></td>
+                                <td><span class="weight-badge">10分</span></td>
+                                <td>有成熟二销自营项目得5分，可做联票得10分</td>
+                                <td>
+                                    <select id="data12" class="data-input" onchange="calculateScore12()">
+                                        <option value="">请选择</option>
+                                        <option value="self">有自营</option>
+                                        <option value="joint">可做联票</option>
+                                        <option value="none">无</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score12" class="score-input" value="0" min="0" max="10" readonly></td>
+                            </tr>
+                            <tr>
+                                <td>13</td>
+                                <td><strong>运营能力</strong></td>
+                                <td><span class="weight-badge">5分</span></td>
+                                <td>景区有自己的线上及线下运营团队得5分</td>
+                                <td>
+                                    <select id="data13" class="data-input" onchange="calculateScore13()">
+                                        <option value="">请选择</option>
+                                        <option value="yes">有</option>
+                                        <option value="no">无</option>
+                                    </select>
+                                </td>
+                                <td><input type="number" id="score13" class="score-input" value="0" min="0" max="5" readonly></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 审核结果 -->
+            <div class="result-section">
+                <div class="result-label">审核结果</div>
+                <div class="result-score" id="totalScore">0</div>
+                <div id="detailScore" style="opacity: 0.9; margin-bottom: 10px;">各项得分总计：0分 / 满分100分</div>
+                <div class="result-status status-fail" id="resultStatus">未通过（需≥80分）</div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-primary" onclick="exportReport()">导出审核报告</button>
+                <button class="btn btn-default" onclick="resetForm()">重置表单</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 图片预览
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById(previewId);
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    input.parentElement.querySelector('.photo-upload-label').style.display = 'none';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // 更新一票否决项 - 柱距
+        function updateVetoColumnSpacing() {
+            const columnSpacing = parseFloat(document.getElementById('columnSpacing').value);
+            const display = document.getElementById('veto_column_spacing_display');
+            const input = document.getElementById('veto_column_spacing');
+            
+            if (isNaN(columnSpacing)) {
+                display.textContent = '请在基础信息中填写柱距';
+                display.className = 'veto-value veto-auto';
+                input.value = '';
+            } else if (columnSpacing >= 6) {
+                display.textContent = '✓ 满足（≥6米）';
+                display.className = 'veto-value veto-pass';
+                input.value = 'yes';
+            } else {
+                display.textContent = '✗ 不满足（<6米）';
+                display.className = 'veto-value veto-fail';
+                input.value = 'no';
+            }
+            calculateTotal();
+        }
+
+        // 更新一票否决项 - 层高
+        function updateVetoHeight() {
+            const floorHeight = parseFloat(document.getElementById('floorHeight').value);
+            const display = document.getElementById('veto_height_display');
+            const input = document.getElementById('veto_height');
+            
+            if (isNaN(floorHeight)) {
+                display.textContent = '请在基础信息中填写层高';
+                display.className = 'veto-value veto-auto';
+                input.value = '';
+            } else if (floorHeight >= 2.7) {
+                display.textContent = '✓ 满足（≥2.7米）';
+                display.className = 'veto-value veto-pass';
+                input.value = 'yes';
+            } else {
+                display.textContent = '✗ 不满足（<2.7米）';
+                display.className = 'veto-value veto-fail';
+                input.value = 'no';
+            }
+            calculateTotal();
+        }
+
+        // 更新一票否决项 - 电力
+        function updateVetoPower() {
+            const powerConfig = document.getElementById('powerConfig').value;
+            const display = document.getElementById('veto_power_display');
+            const input = document.getElementById('veto_power');
+            
+            if (!powerConfig) {
+                display.textContent = '请在基础信息中选择电力配置';
+                display.className = 'veto-value veto-auto';
+                input.value = '';
+            } else if (powerConfig === '满足') {
+                display.textContent = '✓ 满足';
+                display.className = 'veto-value veto-pass';
+                input.value = 'yes';
+            } else {
+                display.textContent = '✗ 不满足';
+                display.className = 'veto-value veto-fail';
+                input.value = 'no';
+            }
+            calculateTotal();
+        }
+
+        // 更新一票否决项 - 网络
+        function updateVetoNetwork() {
+            const networkDelay = parseFloat(document.getElementById('networkDelay').value);
+            const display = document.getElementById('veto_network_display');
+            const input = document.getElementById('veto_network');
+            
+            if (isNaN(networkDelay)) {
+                display.textContent = '请在基础信息中填写网络延迟';
+                display.className = 'veto-value veto-auto';
+                input.value = '';
+            } else if (networkDelay <= 40) {
+                display.textContent = '✓ 满足（≤40ms）';
+                display.className = 'veto-value veto-pass';
+                input.value = 'yes';
+            } else {
+                display.textContent = '✗ 不满足（>40ms）';
+                display.className = 'veto-value veto-fail';
+                input.value = 'no';
+            }
+            calculateTotal();
+        }
+
+        // 同步客流量到评分表
+        function updateScoreVisitorFlow() {
+            const visitorFlow = document.getElementById('visitorFlow').value;
+            document.getElementById('data2').value = visitorFlow;
+            calculateScore2();
+        }
+
+        // 同步停留时长到评分表
+        function updateScoreStayTime() {
+            const stayTime = document.getElementById('stayTime').value;
+            document.getElementById('data3').value = stayTime;
+            calculateScore3();
+        }
+
+        // 同步楼层到评分表
+        function updateScoreFloor() {
+            const floor = document.getElementById('floor').value;
+            document.getElementById('data10').value = floor;
+            calculateScore10();
+        }
+
+        // 评分计算函数
+        function calculateScore1() {
+            const data = parseFloat(document.getElementById('data1').value) || 0;
+            let score = 0;
+            if (data >= 70) score = 10;
+            else if (data >= 60) score = 8;
+            else if (data >= 50) score = 6;
+            else if (data >= 40) score = 4;
+            else if (data >= 30) score = 2;
+            document.getElementById('score1').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore2() {
+            const data = parseFloat(document.getElementById('data2').value) || 0;
+            let score = 0;
+            if (data >= 300) score = 15;
+            else if (data >= 100) score = Math.max(0, 15 - Math.floor((300 - data) / 20));
+            document.getElementById('score2').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore3() {
+            const data = parseFloat(document.getElementById('data3').value) || 0;
+            let score = 0;
+            if (data >= 3) score = 10;
+            else if (data >= 2) score = 7;
+            else if (data >= 1.5) score = 4;
+            document.getElementById('score3').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore4() {
+            const data = parseFloat(document.getElementById('data4').value) || 0;
+            let score = 0;
+            if (data >= 60) score = 10;
+            else if (data >= 50) score = 8;
+            else if (data >= 40) score = 6;
+            else if (data >= 30) score = 4;
+            else if (data >= 20) score = 2;
+            document.getElementById('score4').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore5() {
+            const data = document.getElementById('data5').value;
+            document.getElementById('score5').value = data === 'yes' ? 5 : 0;
+            calculateTotal();
+        }
+
+        function calculateScore6() {
+            const data = document.getElementById('data6').value;
+            document.getElementById('score6').value = data === 'yes' ? 5 : 0;
+            calculateTotal();
+        }
+
+        function calculateScore7() {
+            const data = document.getElementById('data7').value;
+            let score = 0;
+            if (data === 'strong') score = 5;
+            else if (data === 'weak') score = 2;
+            document.getElementById('score7').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore8() {
+            const data = parseFloat(document.getElementById('data8').value) || 0;
+            let score = 2;
+            if (data > 55) score = Math.max(0, 2 - Math.floor((data - 55) / 5));
+            document.getElementById('score8').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore9() {
+            const data = document.getElementById('data9').value;
+            document.getElementById('score9').value = data === 'complete' ? 3 : 0;
+            calculateTotal();
+        }
+
+        function calculateScore10() {
+            const data = document.getElementById('data10').value;
+            let score = 0;
+            if (data === '1') score = 10;
+            else if (data === '2') score = 5;
+            document.getElementById('score10').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore11() {
+            const data = document.getElementById('data11').value;
+            let score = 0;
+            if (data === 'main' || data === 'square') score = 10;
+            document.getElementById('score11').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore12() {
+            const data = document.getElementById('data12').value;
+            let score = 0;
+            if (data === 'joint') score = 10;
+            else if (data === 'self') score = 5;
+            document.getElementById('score12').value = score;
+            calculateTotal();
+        }
+
+        function calculateScore13() {
+            const data = document.getElementById('data13').value;
+            document.getElementById('score13').value = data === 'yes' ? 5 : 0;
+            calculateTotal();
+        }
+
+        // 计算总分
+        function calculateTotal() {
+            // 检查一票否决项
+            const vetoItems = ['veto_column_spacing', 'veto_height', 'veto_power', 'veto_network'];
+            let hasVeto = false;
+            
+            for (let item of vetoItems) {
+                if (document.getElementById(item).value === 'no') {
+                    hasVeto = true;
+                    break;
+                }
+            }
+
+            // 显示/隐藏否决警告
+            document.getElementById('vetoWarning').style.display = hasVeto ? 'block' : 'none';
+
+            // 计算各项得分总和
+            const scoreIds = ['score1', 'score2', 'score3', 'score4', 'score5', 'score6', 
+                             'score7', 'score8', 'score9', 'score10', 'score11', 'score12', 'score13'];
+            let totalScore = 0;
+            
+            for (let id of scoreIds) {
+                totalScore += parseFloat(document.getElementById(id).value) || 0;
+            }
+
+            // 更新显示
+            document.getElementById('totalScore').textContent = totalScore;
+            document.getElementById('detailScore').textContent = `各项得分总计：${totalScore}分 / 满分100分`;
+
+            // 更新结果状态
+            const statusEl = document.getElementById('resultStatus');
+            if (hasVeto) {
+                statusEl.textContent = '一票否决 - 不通过';
+                statusEl.className = 'result-status status-veto';
+            } else if (totalScore >= 80) {
+                statusEl.textContent = '通过初审';
+                statusEl.className = 'result-status status-pass';
+            } else {
+                statusEl.textContent = '未通过（需≥80分）';
+                statusEl.className = 'result-status status-fail';
+            }
+        }
+
+        // 导出报告
+        function exportReport() {
+            const scenicName = document.getElementById('scenicName').value || '未命名景区';
+            const totalScore = document.getElementById('totalScore').textContent;
+            const status = document.getElementById('resultStatus').textContent;
+            
+            let report = `景区选址审核报告\n`;
+            report += `==================\n\n`;
+            report += `景区名称：${scenicName}\n`;
+            report += `审核日期：${new Date().toLocaleDateString()}\n\n`;
+            report += `【基础信息】\n`;
+            report += `景区级别：${document.getElementById('scenicLevel').value || '-'}\n`;
+            report += `选址区域：${document.getElementById('locationArea').value || '-'}\n`;
+            report += `门票价格：${document.getElementById('ticketPrice').value || '-'}元\n`;
+            report += `场地面积：${document.getElementById('area').value || '-'}㎡\n`;
+            report += `柱距：${document.getElementById('columnSpacing').value || '-'}米\n`;
+            report += `层高：${document.getElementById('floorHeight').value || '-'}米\n`;
+            report += `楼层：${document.getElementById('floor').value || '-'}\n`;
+            report += `年客流量：${document.getElementById('visitorFlow').value || '-'}万人次\n`;
+            report += `平均停留时长：${document.getElementById('stayTime').value || '-'}小时\n`;
+            report += `网络延迟：${document.getElementById('networkDelay').value || '-'}ms\n`;
+            report += `电力配置：${document.getElementById('powerConfig').value || '-'}\n\n`;
+            report += `【一票否决项】\n`;
+            report += `柱距达标：${document.getElementById('veto_column_spacing_display').textContent}\n`;
+            report += `层高合规：${document.getElementById('veto_height_display').textContent}\n`;
+            report += `电力负荷：${document.getElementById('veto_power_display').textContent}\n`;
+            report += `网络稳定：${document.getElementById('veto_network_display').textContent}\n\n`;
+            report += `【评分细则】\n`;
+            for (let i = 1; i <= 13; i++) {
+                report += `${i}. 得分：${document.getElementById('score' + i).value}分\n`;
+            }
+            report += `\n【审核结果】\n`;
+            report += `总分：${totalScore}分\n`;
+            report += `结论：${status}\n`;
+            
+            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${scenicName}_选址审核报告.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 重置表单
+        function resetForm() {
+            if (confirm('确定要重置所有数据吗？')) {
+                location.reload();
+            }
+        }
+
+        // 初始化
+        calculateTotal();
+    </script>
+</body>
+</html>
